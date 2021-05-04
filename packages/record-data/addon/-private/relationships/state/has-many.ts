@@ -2,6 +2,9 @@ import { assert } from '@ember/debug';
 
 import { createState } from '../../graph/-state';
 import { isImplicit, isNew } from '../../graph/-utils';
+import { TrackedMembership } from '../../graph/membership';
+
+type TrackedMembership = import('../../graph/membership').TrackedMembership;
 
 type CollectionResourceRelationship = import('@ember-data/store/-private/ts-interfaces/ember-data-json-api').CollectionResourceRelationship;
 type UpgradedMeta = import('../../graph/-edge-definition').UpgradedMeta;
@@ -19,7 +22,7 @@ export default class ManyRelationship {
   declare store: RecordDataStoreWrapper;
   declare definition: UpgradedMeta;
   declare identifier: StableRecordIdentifier;
-  declare _state: RelationshipState | null;
+  declare _proxy: TrackedMembership;
 
   declare members: Set<StableRecordIdentifier>;
   declare canonicalMembers: Set<StableRecordIdentifier>;
@@ -32,11 +35,11 @@ export default class ManyRelationship {
   declare _pendingManyArrayUpdates: any;
 
   constructor(graph: Graph, definition: UpgradedMeta, identifier: StableRecordIdentifier) {
+    this._proxy = new TrackedMembership(graph, definition, identifier);
     this.graph = graph;
     this.store = graph.store;
     this.definition = definition;
     this.identifier = identifier;
-    this._state = null;
 
     this.members = new Set<StableRecordIdentifier>();
     this.canonicalMembers = new Set<StableRecordIdentifier>();
@@ -53,11 +56,7 @@ export default class ManyRelationship {
   }
 
   get state(): RelationshipState {
-    let { _state } = this;
-    if (!_state) {
-      _state = this._state = createState();
-    }
-    return _state;
+    return this._proxy.state;
   }
 
   recordDataDidDematerialize() {
