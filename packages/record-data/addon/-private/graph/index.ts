@@ -5,7 +5,14 @@ import BelongsToRelationship from '../relationships/state/belongs-to';
 import ManyRelationship from '../relationships/state/has-many';
 import ImplicitRelationship from '../relationships/state/implicit';
 import { isLHS, upgradeDefinition } from './-edge-definition';
-import { assertValidRelationshipPayload, isBelongsTo, isHasMany, isImplicit } from './-utils';
+import {
+  assertValidRelationshipPayload,
+  forAllRelatedIdentifiers,
+  isBelongsTo,
+  isHasMany,
+  isImplicit,
+  notifyInverseOfDematerialization,
+} from './-utils';
 import addToRelatedRecords from './operations/add-to-related-records';
 import removeFromRelatedRecords from './operations/remove-from-related-records';
 import replaceRelatedRecord from './operations/replace-related-record';
@@ -364,7 +371,11 @@ function destroyRelationship(rel) {
     return;
   }
 
-  rel.recordDataDidDematerialize();
+  const { graph, identifier } = rel;
+  const { inverseKey } = rel.definition;
+  forAllRelatedIdentifiers(rel, (inverseIdentifier) =>
+    notifyInverseOfDematerialization(graph, inverseIdentifier, inverseKey, identifier)
+  );
 
   if (!rel.definition.inverseIsImplicit && !rel.definition.inverseIsAsync) {
     rel.state.isStale = true;

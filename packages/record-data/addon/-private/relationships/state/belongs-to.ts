@@ -51,64 +51,6 @@ export default class BelongsToRelationship {
     return _state;
   }
 
-  recordDataDidDematerialize() {
-    if (this.definition.inverseIsImplicit) {
-      return;
-    }
-
-    const inverseKey = this.definition.inverseKey;
-    const callback = (inverseIdentifier) => {
-      if (!inverseIdentifier || !this.graph.has(inverseIdentifier, inverseKey)) {
-        return;
-      }
-
-      let relationship = this.graph.get(inverseIdentifier, inverseKey);
-
-      // For canonical members, it is possible that inverseRecordData has already been associated to
-      // to another record. For such cases, do not dematerialize the inverseRecordData
-      if (
-        relationship.definition.kind !== 'belongsTo' ||
-        !(relationship as BelongsToRelationship).localState ||
-        this.identifier === (relationship as BelongsToRelationship).localState
-      ) {
-        (relationship as BelongsToRelationship | ManyRelationship).inverseDidDematerialize(this.identifier);
-      }
-    };
-
-    if (this.remoteState) {
-      callback(this.remoteState);
-    }
-    if (this.localState && this.localState !== this.remoteState) {
-      callback(this.localState);
-    }
-  }
-
-  inverseDidDematerialize() {
-    const inverseRecordData = this.localState;
-    if (!this.definition.isAsync || (inverseRecordData && isNew(inverseRecordData))) {
-      // unloading inverse of a sync relationship is treated as a client-side
-      // delete, so actually remove the models don't merely invalidate the cp
-      // cache.
-      // if the record being unloaded only exists on the client, we similarly
-      // treat it as a client side delete
-      if (this.localState === inverseRecordData && inverseRecordData !== null) {
-        this.localState = null;
-      }
-
-      if (this.remoteState === inverseRecordData && inverseRecordData !== null) {
-        this.remoteState = null;
-        this.state.hasReceivedData = true;
-        this.state.isEmpty = true;
-        if (this.localState && !isNew(this.localState)) {
-          this.localState = null;
-        }
-      }
-    } else {
-      this.state.hasDematerializedInverse = true;
-    }
-    this.notifyBelongsToChange();
-  }
-
   getData(): DefaultSingleResourceRelationship {
     let data;
     let payload: any = {};

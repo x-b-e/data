@@ -126,3 +126,107 @@ export function assertRelationshipData(store, identifier, data, meta) {
     data === null || !data.type || store._hasModelFor(data.type)
   );
 }
+
+export function forAllRelatedIdentifiers(
+  rel: BelongsToRelationship | ManyRelationship,
+  cb: (identifier: StableRecordIdentifier) => void
+): void {
+  if (isBelongsTo(rel)) {
+    if (rel.remoteState) {
+      cb(rel.remoteState);
+    }
+    if (rel.localState && rel.localState !== rel.remoteState) {
+      cb(rel.localState);
+    }
+  } else {
+    // ensure we don't walk anything twice if an entry is
+    // in both members and canonicalMembers
+    let seen = Object.create(null);
+
+    for (let i = 0; i < rel.currentState.length; i++) {
+      const inverseInternalModel = rel.currentState[i];
+      const id = inverseInternalModel.lid;
+      if (!seen[id]) {
+        seen[id] = true;
+        cb(inverseInternalModel);
+      }
+    }
+
+    for (let i = 0; i < rel.canonicalState.length; i++) {
+      const inverseInternalModel = rel.canonicalState[i];
+      const id = inverseInternalModel.lid;
+      if (!seen[id]) {
+        seen[id] = true;
+        cb(inverseInternalModel);
+      }
+    }
+  }
+}
+
+export function notifyInverseOfDematerialization(
+  graph: Graph,
+  inverseIdentifier: StableRecordIdentifier,
+  inverseKey: string,
+  identifier: StableRecordIdentifier
+): void {
+  if (!inverseIdentifier || !graph.has(inverseIdentifier, inverseKey)) {
+    return;
+  }
+
+  let relationship = graph.get(inverseIdentifier, inverseKey);
+  assert(`expected no implicit`, !isImplicit(relationship));
+
+  // For canonical state of a belongsTo, it is possible that inverseIdentifier has
+  // already been associated to to another record. For such cases, do not notify the
+  // demterialization.
+  if (!isBelongsTo(relationship) || !relationship.localState || identifier === relationship.localState) {
+    removeDematerializedInverse(relationship, identifier);
+  }
+}
+
+function removeDematerializedInverse(
+  relationship: ManyRelationship | BelongsToRelationship,
+  inverseIdentifier: StableRecordIdentifier
+) {
+  if (isHasMany(relationship)) {
+    if (!relationship.definition.isAsync || (inverseIdentifier && isNew(inverseIdentifier))) {
+      // unloading inverse of a sync relationship is treated as a client-side
+      // delete, so actually remove the models don't merely invalidate the cp
+      // cache.
+      // if the record being unloaded only exists on the client, we similarly
+      // treat it as a client side delete
+      relationship.removeCompletelyFromOwn(inverseIdentifier);
+    } else {
+      relationship.state.hasDematerializedInverse = true;
+    }
+
+    relationship.notifyHasManyChange();
+  } else {
+    assert(
+      `Expected localState to match the identifier being dematerialized`,
+      relationship.localState === inverseIdentifier && inverseIdentifier
+    );
+    if (!relationship.definition.isAsync || (inverseIdentifier && isNew(inverseIdentifier))) {
+      // unloading inverse of a sync relationship is treated as a client-side
+      // delete, so actually remove the models don't merely invalidate the cp
+      // cache.
+      // if the record being unloaded only exists on the client, we similarly
+      // treat it as a client side delete
+      if (inverseIdentifier !== null) {
+        relationship.localState = null;
+      }
+
+      if (relationship.remoteState === inverseIdentifier && inverseIdentifier !== null) {
+        relationship.remoteState = null;
+        relationship.state.hasReceivedData = true;
+        relationship.state.isEmpty = true;
+        if (relationship.localState && !isNew(relationship.localState)) {
+          relationship.localState = null;
+        }
+      }
+    } else {
+      relationship.state.hasDematerializedInverse = true;
+    }
+    relationship.notifyBelongsToChange();
+  }
+}

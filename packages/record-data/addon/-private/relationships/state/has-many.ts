@@ -1,10 +1,4 @@
-import { assert } from '@ember/debug';
-
 import { createState } from '../../graph/-state';
-import { isImplicit, isNew } from '../../graph/-utils';
-import { TrackedMembership } from '../../graph/membership';
-
-type TrackedMembership = import('../../graph/membership').TrackedMembership;
 
 type CollectionResourceRelationship = import('@ember-data/store/-private/ts-interfaces/ember-data-json-api').CollectionResourceRelationship;
 type UpgradedMeta = import('../../graph/-edge-definition').UpgradedMeta;
@@ -13,7 +7,6 @@ type StableRecordIdentifier = import('@ember-data/store/-private/ts-interfaces/i
 type Links = import('@ember-data/store/-private/ts-interfaces/ember-data-json-api').Links;
 type Meta = import('@ember-data/store/-private/ts-interfaces/ember-data-json-api').Meta;
 type RelationshipState = import('../../graph/-state').RelationshipState;
-type BelongsToRelationship = import('../..').BelongsToRelationship;
 type RecordDataStoreWrapper = import('@ember-data/store/-private').RecordDataStoreWrapper;
 type PaginationLinks = import('@ember-data/store/-private/ts-interfaces/ember-data-json-api').PaginationLinks;
 
@@ -22,7 +15,6 @@ export default class ManyRelationship {
   declare store: RecordDataStoreWrapper;
   declare definition: UpgradedMeta;
   declare identifier: StableRecordIdentifier;
-  declare _proxy: TrackedMembership;
 
   declare members: Set<StableRecordIdentifier>;
   declare canonicalMembers: Set<StableRecordIdentifier>;
@@ -33,13 +25,14 @@ export default class ManyRelationship {
   declare currentState: StableRecordIdentifier[];
   declare _willUpdateManyArray: boolean;
   declare _pendingManyArrayUpdates: any;
+  declare _state: RelationshipState | null;
 
   constructor(graph: Graph, definition: UpgradedMeta, identifier: StableRecordIdentifier) {
-    this._proxy = new TrackedMembership(graph, definition, identifier);
     this.graph = graph;
     this.store = graph.store;
     this.definition = definition;
     this.identifier = identifier;
+    this._state = null;
 
     this.members = new Set<StableRecordIdentifier>();
     this.canonicalMembers = new Set<StableRecordIdentifier>();
@@ -56,57 +49,11 @@ export default class ManyRelationship {
   }
 
   get state(): RelationshipState {
-    return this._proxy.state;
-  }
-
-  recordDataDidDematerialize() {
-    if (this.definition.inverseIsImplicit) {
-      return;
+    let { _state } = this;
+    if (!_state) {
+      _state = this._state = createState();
     }
-
-    const inverseKey = this.definition.inverseKey;
-    this.forAllMembers((inverseIdentifier) => {
-      inverseIdentifier;
-      if (!inverseIdentifier || !this.graph.has(inverseIdentifier, inverseKey)) {
-        return;
-      }
-      let relationship = this.graph.get(inverseIdentifier, inverseKey);
-      assert(`expected no implicit`, !isImplicit(relationship));
-
-      // For canonical members, it is possible that inverseRecordData has already been associated to
-      // to another record. For such cases, do not dematerialize the inverseRecordData
-      if (
-        relationship.definition.kind !== 'belongsTo' ||
-        !(relationship as BelongsToRelationship).localState ||
-        this.identifier === (relationship as BelongsToRelationship).localState
-      ) {
-        (relationship as ManyRelationship | BelongsToRelationship).inverseDidDematerialize(this.identifier);
-      }
-    });
-  }
-
-  forAllMembers(callback: (im: StableRecordIdentifier | null) => void) {
-    // ensure we don't walk anything twice if an entry is
-    // in both members and canonicalMembers
-    let seen = Object.create(null);
-
-    for (let i = 0; i < this.currentState.length; i++) {
-      const inverseInternalModel = this.currentState[i];
-      const id = inverseInternalModel.lid;
-      if (!seen[id]) {
-        seen[id] = true;
-        callback(inverseInternalModel);
-      }
-    }
-
-    for (let i = 0; i < this.canonicalState.length; i++) {
-      const inverseInternalModel = this.canonicalState[i];
-      const id = inverseInternalModel.lid;
-      if (!seen[id]) {
-        seen[id] = true;
-        callback(inverseInternalModel);
-      }
-    }
+    return _state;
   }
 
   clear() {
@@ -114,21 +61,6 @@ export default class ManyRelationship {
     this.canonicalMembers.clear();
     this.currentState = [];
     this.canonicalState = [];
-  }
-
-  inverseDidDematerialize(inverseRecordData: StableRecordIdentifier) {
-    if (!this.definition.isAsync || (inverseRecordData && isNew(inverseRecordData))) {
-      // unloading inverse of a sync relationship is treated as a client-side
-      // delete, so actually remove the models don't merely invalidate the cp
-      // cache.
-      // if the record being unloaded only exists on the client, we similarly
-      // treat it as a client side delete
-      this.removeCompletelyFromOwn(inverseRecordData);
-    } else {
-      this.state.hasDematerializedInverse = true;
-    }
-
-    this.notifyHasManyChange();
   }
 
   /*
