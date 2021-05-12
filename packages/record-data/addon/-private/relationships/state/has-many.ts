@@ -63,36 +63,6 @@ export default class ManyRelationship {
     this.canonicalState = [];
   }
 
-  /*
-    Removes the given RecordData from BOTH canonical AND current state.
-
-    This method is useful when either a deletion or a rollback on a new record
-    needs to entirely purge itself from an inverse relationship.
-  */
-  removeCompletelyFromOwn(recordData: StableRecordIdentifier) {
-    this.canonicalMembers.delete(recordData);
-    this.members.delete(recordData);
-
-    const canonicalIndex = this.canonicalState.indexOf(recordData);
-    if (canonicalIndex !== -1) {
-      this.canonicalState.splice(canonicalIndex, 1);
-    }
-
-    const currentIndex = this.currentState.indexOf(recordData);
-    if (currentIndex !== -1) {
-      this.currentState.splice(currentIndex, 1);
-      // This allows dematerialized inverses to be rematerialized
-      // we shouldn't be notifying here though, figure out where
-      // a notification was missed elsewhere.
-      this.notifyHasManyChange();
-    }
-  }
-
-  notifyHasManyChange() {
-    const { store, identifier: recordData } = this;
-    store.notifyHasManyChange(recordData.type, recordData.id, recordData.lid, this.definition.key);
-  }
-
   getData(): CollectionResourceRelationship {
     let payload: any = {};
     if (this.state.hasReceivedData) {

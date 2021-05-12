@@ -2,6 +2,8 @@ import { assert, inspect, warn } from '@ember/debug';
 
 import { coerceId, recordDataFor as peekRecordData } from '@ember-data/store/-private';
 
+type RecordDataStoreWrapper = import('@ember-data/store/-private/ts-interfaces/record-data-store-wrapper').RecordDataStoreWrapper;
+
 type Graph = import('./index').Graph;
 type RecordData = import('@ember-data/store/-private/ts-interfaces/record-data').RecordData;
 type RelationshipRecordData = import('../ts-interfaces/relationship-record-data').RelationshipRecordData;
@@ -128,7 +130,7 @@ export function assertRelationshipData(store, identifier, data, meta) {
 }
 
 export function forAllRelatedIdentifiers(
-  rel: BelongsToRelationship | ManyRelationship,
+  rel: BelongsToRelationship | ManyRelationship | ImplicitRelationship,
   cb: (identifier: StableRecordIdentifier) => void
 ): void {
   if (isBelongsTo(rel)) {
@@ -138,28 +140,44 @@ export function forAllRelatedIdentifiers(
     if (rel.localState && rel.localState !== rel.remoteState) {
       cb(rel.localState);
     }
-  } else {
+  } else if (isHasMany(rel)) {
     // ensure we don't walk anything twice if an entry is
     // in both members and canonicalMembers
     let seen = Object.create(null);
 
     for (let i = 0; i < rel.currentState.length; i++) {
-      const inverseInternalModel = rel.currentState[i];
-      const id = inverseInternalModel.lid;
+      const inverseIdentifier = rel.currentState[i];
+      const id = inverseIdentifier.lid;
       if (!seen[id]) {
         seen[id] = true;
-        cb(inverseInternalModel);
+        cb(inverseIdentifier);
       }
     }
 
     for (let i = 0; i < rel.canonicalState.length; i++) {
-      const inverseInternalModel = rel.canonicalState[i];
-      const id = inverseInternalModel.lid;
+      const inverseIdentifier = rel.canonicalState[i];
+      const id = inverseIdentifier.lid;
       if (!seen[id]) {
         seen[id] = true;
-        cb(inverseInternalModel);
+        cb(inverseIdentifier);
       }
     }
+  } else {
+    let seen = Object.create(null);
+    rel.members.forEach((inverseIdentifier) => {
+      const id = inverseIdentifier.lid;
+      if (!seen[id]) {
+        seen[id] = true;
+        cb(inverseIdentifier);
+      }
+    });
+    rel.canonicalMembers.forEach((inverseIdentifier) => {
+      const id = inverseIdentifier.lid;
+      if (!seen[id]) {
+        seen[id] = true;
+        cb(inverseIdentifier);
+      }
+    });
   }
 }
 
@@ -184,6 +202,51 @@ export function notifyInverseOfDematerialization(
   }
 }
 
+/*
+    Removes the given RecordData from BOTH canonical AND current state.
+
+    This method is useful when either a deletion or a rollback on a new record
+    needs to entirely purge itself from an inverse relationship.
+  */
+export function removeIdentifierCompletelyFromRelationship(
+  relationship: ManyRelationship | BelongsToRelationship | ImplicitRelationship,
+  inverseIdentifier: StableRecordIdentifier
+) {
+  if (isBelongsTo(relationship)) {
+    if (relationship.remoteState === inverseIdentifier) {
+      relationship.remoteState = null;
+    }
+
+    if (relationship.localState === inverseIdentifier) {
+      relationship.localState = null;
+      // This allows dematerialized inverses to be rematerialized
+      // we shouldn't be notifying here though, figure out where
+      // a notification was missed elsewhere.
+      notifyRelationshipChanged(relationship.store, relationship);
+    }
+  } else if (isHasMany(relationship)) {
+    relationship.canonicalMembers.delete(inverseIdentifier);
+    relationship.members.delete(inverseIdentifier);
+
+    const canonicalIndex = relationship.canonicalState.indexOf(inverseIdentifier);
+    if (canonicalIndex !== -1) {
+      relationship.canonicalState.splice(canonicalIndex, 1);
+    }
+
+    const currentIndex = relationship.currentState.indexOf(inverseIdentifier);
+    if (currentIndex !== -1) {
+      relationship.currentState.splice(currentIndex, 1);
+      // This allows dematerialized inverses to be rematerialized
+      // we shouldn't be notifying here though, figure out where
+      // a notification was missed elsewhere.
+      notifyRelationshipChanged(relationship.store, relationship);
+    }
+  } else {
+    relationship.canonicalMembers.delete(inverseIdentifier);
+    relationship.members.delete(inverseIdentifier);
+  }
+}
+
 function removeDematerializedInverse(
   relationship: ManyRelationship | BelongsToRelationship,
   inverseIdentifier: StableRecordIdentifier
@@ -195,12 +258,12 @@ function removeDematerializedInverse(
       // cache.
       // if the record being unloaded only exists on the client, we similarly
       // treat it as a client side delete
-      relationship.removeCompletelyFromOwn(inverseIdentifier);
+      removeIdentifierCompletelyFromRelationship(relationship, inverseIdentifier);
     } else {
       relationship.state.hasDematerializedInverse = true;
     }
 
-    relationship.notifyHasManyChange();
+    notifyRelationshipChanged(relationship.store, relationship);
   } else {
     assert(
       `Expected localState to match the identifier being dematerialized`,
@@ -227,6 +290,20 @@ function removeDematerializedInverse(
     } else {
       relationship.state.hasDematerializedInverse = true;
     }
-    relationship.notifyBelongsToChange();
+    notifyRelationshipChanged(relationship.store, relationship);
+  }
+}
+
+export function notifyRelationshipChanged(
+  store: RecordDataStoreWrapper,
+  relationship: BelongsToRelationship | ManyRelationship
+) {
+  const { type, id, lid } = relationship.identifier;
+  const { key, kind } = relationship.definition;
+
+  if (kind === 'hasMany') {
+    store.notifyHasManyChange(type, id, lid, key);
+  } else {
+    store.notifyBelongsToChange(type, id, lid, key);
   }
 }

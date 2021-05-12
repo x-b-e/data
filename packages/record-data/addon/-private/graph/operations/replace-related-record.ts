@@ -2,7 +2,7 @@ import { assert } from '@ember/debug';
 
 import { assertPolymorphicType } from '@ember-data/store/-debug';
 
-import { isBelongsTo, isNew } from '../-utils';
+import { isBelongsTo, isNew, notifyRelationshipChanged } from '../-utils';
 import { addToInverse, removeFromInverse } from './replace-related-records';
 
 type StableRecordIdentifier = import('@ember-data/store/-private/ts-interfaces/identifier').StableRecordIdentifier;
@@ -77,7 +77,7 @@ export default function replaceRelatedRecord(graph: Graph, op: ReplaceRelatedRec
         return;
       }
       relationship.localState = existingState;
-      relationship.notifyBelongsToChange();
+      notifyRelationshipChanged(graph.store, relationship);
     }
     return;
   }
@@ -107,9 +107,9 @@ export default function replaceRelatedRecord(graph: Graph, op: ReplaceRelatedRec
     }
     if (localState !== remoteState) {
       relationship.localState = remoteState;
-      relationship.notifyBelongsToChange();
+      notifyRelationshipChanged(graph.store, relationship);
     }
   } else {
-    relationship.notifyBelongsToChange();
+    notifyRelationshipChanged(graph.store, relationship);
   }
 }

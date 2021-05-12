@@ -1,6 +1,6 @@
 import { assert } from '@ember/debug';
 
-import { isHasMany } from '../-utils';
+import { isHasMany, notifyRelationshipChanged } from '../-utils';
 import { removeFromInverse } from './replace-related-records';
 
 type RemoveFromRelatedRecordsOperation = import('../-operations').RemoveFromRelatedRecordsOperation;
@@ -27,7 +27,7 @@ export default function removeFromRelatedRecords(
   } else {
     removeRelatedRecord(graph, relationship, record, value, isRemote);
   }
-  relationship.notifyHasManyChange();
+  notifyRelationshipChanged(graph.store, relationship);
 }
 
 function removeRelatedRecord(

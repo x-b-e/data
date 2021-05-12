@@ -12,6 +12,8 @@ import {
   isHasMany,
   isImplicit,
   notifyInverseOfDematerialization,
+  notifyRelationshipChanged,
+  removeIdentifierCompletelyFromRelationship,
 } from './-utils';
 import addToRelatedRecords from './operations/add-to-related-records';
 import removeFromRelatedRecords from './operations/remove-from-related-records';
@@ -390,11 +392,7 @@ function destroyRelationship(rel) {
     // leave the ui relationship populated since the record is destroyed and
     // internally we've fully cleaned up.
     if (!rel.definition.isAsync) {
-      if (isBelongsTo(rel)) {
-        rel.notifyBelongsToChange();
-      } else {
-        rel.notifyHasManyChange();
-      }
+      notifyRelationshipChanged(rel.store, rel);
     }
   }
 }
@@ -402,45 +400,27 @@ function destroyRelationship(rel) {
 function removeCompletelyFromInverse(relationship: ImplicitRelationship | ManyRelationship | BelongsToRelationship) {
   // we actually want a union of members and canonicalMembers
   // they should be disjoint but currently are not due to a bug
-  const seen = Object.create(null);
   const { identifier } = relationship;
   const { inverseKey } = relationship.definition;
 
-  const unload = (inverseIdentifier: StableRecordIdentifier) => {
-    const id = inverseIdentifier.lid;
-
-    if (seen[id] === undefined) {
-      if (relationship.graph.has(inverseIdentifier, inverseKey)) {
-        relationship.graph.get(inverseIdentifier, inverseKey).removeCompletelyFromOwn(identifier);
-      }
-      seen[id] = true;
+  const { graph } = relationship;
+  forAllRelatedIdentifiers(relationship, (inverseIdentifier) => {
+    if (graph.has(inverseIdentifier, inverseKey)) {
+      removeIdentifierCompletelyFromRelationship(graph.get(inverseIdentifier, inverseKey), identifier);
     }
-  };
+  });
 
   if (isBelongsTo(relationship)) {
-    if (relationship.localState) {
-      unload(relationship.localState);
-    }
-    if (relationship.remoteState) {
-      unload(relationship.remoteState);
-    }
-
     if (!relationship.definition.isAsync) {
       relationship.clear();
     }
-
     relationship.localState = null;
   } else if (isHasMany(relationship)) {
-    relationship.members.forEach(unload);
-    relationship.canonicalMembers.forEach(unload);
-
     if (!relationship.definition.isAsync) {
       relationship.clear();
-      relationship.notifyHasManyChange();
+      notifyRelationshipChanged(graph.store, relationship);
     }
   } else {
-    relationship.members.forEach(unload);
-    relationship.canonicalMembers.forEach(unload);
     relationship.clear();
   }
 }

@@ -1,6 +1,6 @@
 import { assert, warn } from '@ember/debug';
 
-import { isBelongsTo, isHasMany } from '../-utils';
+import { isBelongsTo, isHasMany, notifyRelationshipChanged } from '../-utils';
 import _normalizeLink from '../../normalize-link';
 
 type ExistingResourceIdentifierObject = import('@ember-data/store/-private/ts-interfaces/ember-data-json-api').ExistingResourceIdentifierObject;
@@ -134,10 +134,6 @@ export default function updateRelationshipOperation(graph: Graph, op: UpdateRela
   } else if (hasLink) {
     relationship.state.isStale = true;
 
-    if (isHasMany(relationship)) {
-      relationship.notifyHasManyChange();
-    } else {
-      relationship.notifyBelongsToChange();
-    }
+    notifyRelationshipChanged(graph.store, relationship);
   }
 }

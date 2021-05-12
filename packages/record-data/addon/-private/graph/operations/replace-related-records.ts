@@ -2,7 +2,7 @@ import { assert } from '@ember/debug';
 
 import { assertPolymorphicType } from '@ember-data/store/-debug';
 
-import { isBelongsTo, isHasMany, isNew } from '../-utils';
+import { isBelongsTo, isHasMany, isNew, notifyRelationshipChanged } from '../-utils';
 
 type ManyRelationship = import('../..').ManyRelationship;
 
@@ -134,7 +134,7 @@ function replaceRelatedRecordsLocal(graph: Graph, op: ReplaceRelatedRecordsOpera
   }
 
   if (changed) {
-    relationship.notifyHasManyChange();
+    notifyRelationshipChanged(graph.store, relationship);
   }
 }
 
@@ -252,7 +252,7 @@ export function addToInverse(
         removeFromInverse(graph, relationship.localState, relationship.definition.inverseKey, identifier, isRemote);
       }
       relationship.localState = value;
-      relationship.notifyBelongsToChange();
+      notifyRelationshipChanged(graph.store, relationship);
     }
   } else if (isHasMany(relationship)) {
     if (isRemote) {
@@ -267,14 +267,19 @@ export function addToInverse(
         relationship.currentState.push(value);
         relationship.members.add(value);
         relationship.state.hasReceivedData = true;
-        relationship.notifyHasManyChange();
+        notifyRelationshipChanged(graph.store, relationship);
       }
     }
   } else {
     if (isRemote) {
-      relationship.addCanonicalRecordData(value);
+      if (!relationship.canonicalMembers.has(value)) {
+        relationship.canonicalMembers.add(value);
+        relationship.members.add(value);
+      }
     } else {
-      relationship.addRecordData(value);
+      if (!relationship.members.has(value)) {
+        relationship.members.add(value);
+      }
     }
   }
 }
@@ -295,7 +300,7 @@ export function removeFromInverse(
     }
     if (relationship.localState === value) {
       relationship.localState = null;
-      relationship.notifyBelongsToChange();
+      notifyRelationshipChanged(graph.store, relationship);
     }
   } else if (isHasMany(relationship)) {
     if (isRemote) {
@@ -310,12 +315,13 @@ export function removeFromInverse(
       relationship.members.delete(value);
       relationship.currentState.splice(index, 1);
     }
-    relationship.notifyHasManyChange();
+    notifyRelationshipChanged(graph.store, relationship);
   } else {
     if (isRemote) {
-      relationship.removeCompletelyFromOwn(value);
+      relationship.canonicalMembers.delete(value);
+      relationship.members.delete(value);
     } else {
-      relationship.removeRecordData(value);
+      this.members.delete(value);
     }
   }
 }
@@ -334,11 +340,11 @@ export function syncRemoteToLocal(rel: ManyRelationship) {
 
   // TODO always notifying fails only one test and we should probably do away with it
   if (existingState.length !== rel.currentState.length) {
-    rel.notifyHasManyChange();
+    notifyRelationshipChanged(rel.store, rel);
   } else {
     for (let i = 0; i < existingState.length; i++) {
       if (existingState[i] !== rel.currentState[i]) {
-        rel.notifyHasManyChange();
+        notifyRelationshipChanged(rel.store, rel);
         break;
       }
     }

@@ -2,7 +2,7 @@ import { assert } from '@ember/debug';
 
 import { assertPolymorphicType } from '@ember-data/store/-debug';
 
-import { isHasMany } from '../-utils';
+import { isHasMany, notifyRelationshipChanged } from '../-utils';
 import { addToInverse } from './replace-related-records';
 
 type ManyRelationship = import('../../relationships/state/has-many').default;
@@ -25,7 +25,7 @@ export default function addToRelatedRecords(graph: Graph, op: AddToRelatedRecord
     addRelatedRecord(graph, relationship, record, value, index, isRemote);
   }
 
-  relationship.notifyHasManyChange();
+  notifyRelationshipChanged(graph.store, relationship);
 }
 
 function addRelatedRecord(
