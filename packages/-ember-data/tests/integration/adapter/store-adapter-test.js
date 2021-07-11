@@ -78,7 +78,7 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
     person.deleteRecord();
   });
 
-  test('by default, createRecords calls createRecord once per record', function (assert) {
+  test('by default, createRecords calls createRecord once per record', async function (assert) {
     let store = this.owner.lookup('service:store');
     let adapter = store.adapterFor('application');
     let Person = store.modelFor('person');
@@ -118,18 +118,17 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
       yehuda: yehuda.save(),
     });
 
-    return promise.then((records) => {
-      tom = records.tom;
-      yehuda = records.yehuda;
+    let records = await promise;
+    tom = records.tom;
+    yehuda = records.yehuda;
 
-      assert.asyncEqual(tom, store.findRecord('person', 1), 'Once an ID is in, findRecord returns the same object');
-      assert.asyncEqual(yehuda, store.findRecord('person', 2), 'Once an ID is in, findRecord returns the same object');
-      assert.strictEqual(get(tom, 'updatedAt'), 'now', 'The new information is received');
-      assert.strictEqual(get(yehuda, 'updatedAt'), 'now', 'The new information is received');
-    });
+    assert.asyncEqual(tom, store.findRecord('person', 1), 'Once an ID is in, findRecord returns the same object');
+    assert.asyncEqual(yehuda, store.findRecord('person', 2), 'Once an ID is in, findRecord returns the same object');
+    assert.strictEqual(get(tom, 'updatedAt'), 'now', 'The new information is received');
+    assert.strictEqual(get(yehuda, 'updatedAt'), 'now', 'The new information is received');
   });
 
-  test('by default, updateRecords calls updateRecord once per record', function (assert) {
+  test('by default, updateRecords calls updateRecord once per record', async function (assert) {
     let store = this.owner.lookup('service:store');
     let adapter = store.adapterFor('application');
     let Person = store.modelFor('person');
@@ -178,32 +177,29 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
       yehuda: store.findRecord('person', 2),
     });
 
-    return promise
-      .then((records) => {
-        let tom = records.tom;
-        let yehuda = records.yehuda;
+    let records1 = await promise;
+    let tom = records1.tom;
+    let yehuda = records1.yehuda;
 
-        set(tom, 'name', 'Tom Dale');
-        set(yehuda, 'name', 'Yehuda Katz');
+    set(tom, 'name', 'Tom Dale');
+    set(yehuda, 'name', 'Yehuda Katz');
 
-        return hash({
-          tom: tom.save(),
-          yehuda: yehuda.save(),
-        });
-      })
-      .then((records) => {
-        let tom = records.tom;
-        let yehuda = records.yehuda;
+    let records2 = await hash({
+      tom: tom.save(),
+      yehuda: yehuda.save(),
+    });
 
-        assert.false(tom.get('isSaving'), 'record is no longer saving');
-        assert.true(tom.get('isLoaded'), 'record is loaded');
+    let tom2 = records2.tom;
+    let yehuda2 = records2.yehuda;
 
-        assert.false(yehuda.get('isSaving'), 'record is no longer saving');
-        assert.true(yehuda.get('isLoaded'), 'record is loaded');
-      });
+    assert.false(tom2.get('isSaving'), 'record is no longer saving');
+    assert.true(tom2.get('isLoaded'), 'record is loaded');
+
+    assert.false(yehuda2.get('isSaving'), 'record is no longer saving');
+    assert.true(yehuda2.get('isLoaded'), 'record is loaded');
   });
 
-  test('calling store.didSaveRecord can provide an optional hash', function (assert) {
+  test('calling store.didSaveRecord can provide an optional hash', async function (assert) {
     let store = this.owner.lookup('service:store');
     let adapter = store.adapterFor('application');
     let Person = store.modelFor('person');
@@ -257,32 +253,24 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
       yehuda: store.findRecord('person', 2),
     });
 
-    return promise
-      .then((records) => {
-        let tom = records.tom;
-        let yehuda = records.yehuda;
-
-        set(tom, 'name', 'Tom Dale');
-        set(yehuda, 'name', 'Yehuda Katz');
-
-        return hash({
-          tom: tom.save(),
-          yehuda: yehuda.save(),
-        });
-      })
-      .then((records) => {
-        let tom = records.tom;
-        let yehuda = records.yehuda;
-
-        assert.false(get(tom, 'hasDirtyAttributes'), 'the record should not be dirty');
-        assert.strictEqual(get(tom, 'updatedAt'), 'now', 'the hash was updated');
-
-        assert.false(get(yehuda, 'hasDirtyAttributes'), 'the record should not be dirty');
-        assert.strictEqual(get(yehuda, 'updatedAt'), 'now!', 'the hash was updated');
-      });
+    let records = await promise;
+    let tom = records.tom;
+    let yehuda = records.yehuda;
+    set(tom, 'name', 'Tom Dale');
+    set(yehuda, 'name', 'Yehuda Katz');
+    let records2 = await hash({
+      tom: tom.save(),
+      yehuda: yehuda.save(),
+    });
+    let tom2 = records2.tom;
+    let yehuda2 = records2.yehuda;
+    assert.false(get(tom2, 'hasDirtyAttributes'), 'the record should not be dirty');
+    assert.strictEqual(get(tom2, 'updatedAt'), 'now', 'the hash was updated');
+    assert.false(get(yehuda2, 'hasDirtyAttributes'), 'the record should not be dirty');
+    assert.strictEqual(get(yehuda2, 'updatedAt'), 'now!', 'the hash was updated');
   });
 
-  test('by default, deleteRecord calls deleteRecord once per record', function (assert) {
+  test('by default, deleteRecord calls deleteRecord once per record', async function (assert) {
     assert.expect(4);
 
     let store = this.owner.lookup('service:store');
@@ -331,18 +319,17 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
       yehuda: store.findRecord('person', 2),
     });
 
-    return promise.then((records) => {
-      let tom = records.tom;
-      let yehuda = records.yehuda;
+    let records = await promise;
+    let tom = records.tom;
+    let yehuda = records.yehuda;
 
-      tom.deleteRecord();
-      yehuda.deleteRecord();
+    tom.deleteRecord();
+    yehuda.deleteRecord();
 
-      return EmberPromise.all([tom.save(), yehuda.save()]);
-    });
+    return EmberPromise.all([tom.save(), yehuda.save()]);
   });
 
-  test('by default, destroyRecord calls deleteRecord once per record without requiring .save', function (assert) {
+  test('by default, destroyRecord calls deleteRecord once per record without requiring .save', async function (assert) {
     assert.expect(4);
 
     let store = this.owner.lookup('service:store');
@@ -392,12 +379,11 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
       yehuda: store.findRecord('person', 2),
     });
 
-    return promise.then((records) => {
-      let tom = records.tom;
-      let yehuda = records.yehuda;
+    let records = await promise;
+    let tom = records.tom;
+    let yehuda = records.yehuda;
 
-      return EmberPromise.all([tom.destroyRecord(), yehuda.destroyRecord()]);
-    });
+    return EmberPromise.all([tom.destroyRecord(), yehuda.destroyRecord()]);
   });
 
   test('if an existing model is edited then deleted, deleteRecord is called on the adapter', async function (assert) {
@@ -541,7 +527,7 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
     }
   });
 
-  test('allows errors on arbitrary properties on create', function (assert) {
+  test('allows errors on arbitrary properties on create', async function (assert) {
     let store = this.owner.lookup('service:store');
     let adapter = store.adapterFor('application');
 
@@ -568,37 +554,34 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
     // Wrap this in an Ember.run so that all chained async behavior is set up
     // before flushing any scheduled behavior.
 
-    return yehuda
-      .save()
-      .catch((error) => {
-        assert.false(get(yehuda, 'isValid'), 'the record is invalid');
-        assert.ok(get(yehuda, 'errors.base'), 'The errors.base property exists');
-        assert.deepEqual(get(yehuda, 'errors').errorsFor('base'), [
-          { attribute: 'base', message: 'is a generally unsavoury character' },
-        ]);
+    let person = await yehuda.save().catch(() => {
+      assert.false(get(yehuda, 'isValid'), 'the record is invalid');
+      assert.ok(get(yehuda, 'errors.base'), 'The errors.base property exists');
+      assert.deepEqual(get(yehuda, 'errors').errorsFor('base'), [
+        { attribute: 'base', message: 'is a generally unsavoury character' },
+      ]);
 
-        set(yehuda, 'updatedAt', true);
-        assert.false(get(yehuda, 'isValid'), 'the record is still invalid');
+      set(yehuda, 'updatedAt', true);
+      assert.false(get(yehuda, 'isValid'), 'the record is still invalid');
 
-        set(yehuda, 'name', 'Brohuda Brokatz');
+      set(yehuda, 'name', 'Brohuda Brokatz');
 
-        assert.false(get(yehuda, 'isValid'), 'the record is still invalid as far as we know');
-        assert.true(get(yehuda, 'hasDirtyAttributes'), 'the record has outstanding changes');
+      assert.false(get(yehuda, 'isValid'), 'the record is still invalid as far as we know');
+      assert.true(get(yehuda, 'hasDirtyAttributes'), 'the record has outstanding changes');
 
-        assert.true(get(yehuda, 'isNew'), 'precond - record is still new');
+      assert.true(get(yehuda, 'isNew'), 'precond - record is still new');
 
-        return yehuda.save();
-      })
-      .then((person) => {
-        assert.strictEqual(person, yehuda, 'The promise resolves with the saved record');
-        assert.notOk(get(yehuda, 'errors.base'), 'The errors.base property does not exist');
-        assert.deepEqual(get(yehuda, 'errors').errorsFor('base'), []);
-        assert.true(get(yehuda, 'isValid'), 'record remains valid after committing');
-        assert.false(get(yehuda, 'isNew'), 'record is no longer new');
-      });
+      return yehuda.save();
+    });
+
+    assert.strictEqual(person, yehuda, 'The promise resolves with the saved record');
+    assert.notOk(get(person, 'errors.base'), 'The errors.base property does not exist');
+    assert.deepEqual(get(person, 'errors').errorsFor('base'), []);
+    assert.true(get(person, 'isValid'), 'record remains valid after committing');
+    assert.false(get(person, 'isNew'), 'record is no longer new');
   });
 
-  test('if a created record is marked as invalid by the server, you can attempt the save again', function (assert) {
+  test('if a created record is marked as invalid by the server, you can attempt the save again', async function (assert) {
     let store = this.owner.lookup('service:store');
     let adapter = store.adapterFor('application');
     let Person = store.modelFor('person');
@@ -630,7 +613,7 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
     // Wrap this in an Ember.run so that all chained async behavior is set up
     // before flushing any scheduled behavior.
 
-    return yehuda
+    let person = await yehuda
       .save()
       .catch((reason) => {
         assert.strictEqual(saveCount, 1, 'The record has been saved once');
@@ -656,13 +639,12 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
         assert.true(get(yehuda, 'isNew'), 'precond - record is still new');
         set(yehuda, 'name', 'Brohuda Brokatz');
         return yehuda.save();
-      })
-      .then((person) => {
-        assert.strictEqual(saveCount, 3, 'The record has been saved thrice');
-        assert.true(get(yehuda, 'isValid'), 'record is valid');
-        assert.false(get(yehuda, 'hasDirtyAttributes'), 'record is not dirty');
-        assert.true(get(yehuda, 'errors.isEmpty'), 'record has no errors');
       });
+
+    assert.strictEqual(saveCount, 3, 'The record has been saved thrice');
+    assert.true(get(person, 'isValid'), 'record is valid');
+    assert.false(get(person, 'hasDirtyAttributes'), 'record is not dirty');
+    assert.true(get(person, 'errors.isEmpty'), 'record has no errors');
   });
 
   test('if a created record is marked as erred by the server, it enters an error state', function (assert) {
@@ -683,7 +665,7 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
     });
   });
 
-  test('if an updated record is marked as invalid by the server, it enters an error state', function (assert) {
+  test('if an updated record is marked as invalid by the server, it enters an error state', async function (assert) {
     let store = this.owner.lookup('service:store');
     let adapter = store.adapterFor('application');
     let Person = store.modelFor('person');
@@ -721,39 +703,34 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
 
     store.peekRecord('person', 1);
 
-    return store
-      .findRecord('person', 1)
-      .then((person) => {
-        assert.strictEqual(person, yehuda, 'The same object is passed through');
+    let person = await store.findRecord('person', 1);
+    assert.strictEqual(person, yehuda, 'The same object is passed through');
 
-        assert.true(get(yehuda, 'isValid'), 'precond - the record is valid');
-        set(yehuda, 'name', 'Yehuda Katz');
-        assert.true(get(yehuda, 'isValid'), 'precond - the record is still valid as far as we know');
+    assert.true(get(yehuda, 'isValid'), 'precond - the record is valid');
+    set(yehuda, 'name', 'Yehuda Katz');
+    assert.true(get(yehuda, 'isValid'), 'precond - the record is still valid as far as we know');
 
-        assert.true(get(yehuda, 'hasDirtyAttributes'), 'the record is dirty');
+    assert.true(get(yehuda, 'hasDirtyAttributes'), 'the record is dirty');
 
-        return yehuda.save();
-      })
-      .catch((reason) => {
-        assert.true(get(yehuda, 'hasDirtyAttributes'), 'the record is still dirty');
-        assert.false(get(yehuda, 'isValid'), 'the record is invalid');
+    let reason = yehuda.save();
+    let response = await reason.catch(() => {
+      assert.true(get(yehuda, 'hasDirtyAttributes'), 'the record is still dirty');
+      assert.false(get(yehuda, 'isValid'), 'the record is invalid');
 
-        set(yehuda, 'updatedAt', true);
-        assert.false(get(yehuda, 'isValid'), 'the record is still invalid');
+      set(yehuda, 'updatedAt', true);
+      assert.false(get(yehuda, 'isValid'), 'the record is still invalid');
 
-        set(yehuda, 'name', 'Brohuda Brokatz');
-        assert.true(get(yehuda, 'isValid'), 'the record is no longer invalid after changing');
-        assert.true(get(yehuda, 'hasDirtyAttributes'), 'the record has outstanding changes');
+      set(yehuda, 'name', 'Brohuda Brokatz');
+      assert.true(get(yehuda, 'isValid'), 'the record is no longer invalid after changing');
+      assert.true(get(yehuda, 'hasDirtyAttributes'), 'the record has outstanding changes');
 
-        return yehuda.save();
-      })
-      .then((yehuda) => {
-        assert.true(get(yehuda, 'isValid'), 'record remains valid after committing');
-        assert.false(get(yehuda, 'hasDirtyAttributes'), 'record is no longer new');
-      });
+      return yehuda.save();
+    });
+    assert.true(get(response, 'isValid'), 'record remains valid after committing');
+    assert.false(get(response, 'hasDirtyAttributes'), 'record is no longer new');
   });
 
-  test('records can have errors on arbitrary properties after update', function (assert) {
+  test('records can have errors on arbitrary properties after update', async function (assert) {
     let store = this.owner.lookup('service:store');
     let adapter = store.adapterFor('application');
 
@@ -787,48 +764,44 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
     });
     store.peekRecord('person', 1);
 
-    return store
-      .findRecord('person', 1)
-      .then((person) => {
-        assert.strictEqual(person, yehuda, 'The same object is passed through');
+    let person = await store.findRecord('person', 1);
 
-        assert.true(get(yehuda, 'isValid'), 'precond - the record is valid');
-        set(yehuda, 'name', 'Yehuda Katz');
-        assert.true(get(yehuda, 'isValid'), 'precond - the record is still valid as far as we know');
+    assert.strictEqual(person, yehuda, 'The same object is passed through');
 
-        assert.true(get(yehuda, 'hasDirtyAttributes'), 'the record is dirty');
+    assert.true(get(yehuda, 'isValid'), 'precond - the record is valid');
+    set(yehuda, 'name', 'Yehuda Katz');
+    assert.true(get(yehuda, 'isValid'), 'precond - the record is still valid as far as we know');
 
-        return yehuda.save();
-      })
-      .catch((reason) => {
-        assert.true(get(yehuda, 'hasDirtyAttributes'), 'the record is still dirty');
-        assert.false(get(yehuda, 'isValid'), 'the record is invalid');
-        assert.ok(get(yehuda, 'errors.base'), 'The errors.base property exists');
-        assert.deepEqual(get(yehuda, 'errors').errorsFor('base'), [
-          { attribute: 'base', message: 'is a generally unsavoury character' },
-        ]);
+    assert.true(get(yehuda, 'hasDirtyAttributes'), 'the record is dirty');
 
-        set(yehuda, 'updatedAt', true);
-        assert.false(get(yehuda, 'isValid'), 'the record is still invalid');
+    let reason = yehuda.save();
+    let response = await reason.catch(() => {
+      assert.true(get(yehuda, 'hasDirtyAttributes'), 'the record is still dirty');
+      assert.false(get(yehuda, 'isValid'), 'the record is invalid');
+      assert.ok(get(yehuda, 'errors.base'), 'The errors.base property exists');
+      assert.deepEqual(get(yehuda, 'errors').errorsFor('base'), [
+        { attribute: 'base', message: 'is a generally unsavoury character' },
+      ]);
 
-        set(yehuda, 'name', 'Brohuda Brokatz');
-        assert.false(
-          get(yehuda, 'isValid'),
-          "the record is still invalid after changing (only server can know if it's now valid)"
-        );
-        assert.true(get(yehuda, 'hasDirtyAttributes'), 'the record has outstanding changes');
+      set(yehuda, 'updatedAt', true);
+      assert.false(get(yehuda, 'isValid'), 'the record is still invalid');
 
-        return yehuda.save();
-      })
-      .then((yehuda) => {
-        assert.true(get(yehuda, 'isValid'), 'record remains valid after committing');
-        assert.false(get(yehuda, 'hasDirtyAttributes'), 'record is no longer new');
-        assert.notOk(get(yehuda, 'errors.base'), 'The errors.base property does not exist');
-        assert.deepEqual(get(yehuda, 'errors').errorsFor('base'), []);
-      });
+      set(yehuda, 'name', 'Brohuda Brokatz');
+      assert.false(
+        get(yehuda, 'isValid'),
+        "the record is still invalid after changing (only server can know if it's now valid)"
+      );
+      assert.true(get(yehuda, 'hasDirtyAttributes'), 'the record has outstanding changes');
+
+      return yehuda.save();
+    });
+    assert.true(get(response, 'isValid'), 'record remains valid after committing');
+    assert.false(get(response, 'hasDirtyAttributes'), 'record is no longer new');
+    assert.notOk(get(response, 'errors.base'), 'The errors.base property does not exist');
+    assert.deepEqual(get(response, 'errors').errorsFor('base'), []);
   });
 
-  test('if an updated record is marked as invalid by the server, you can attempt the save again', function (assert) {
+  test('if an updated record is marked as invalid by the server, you can attempt the save again', async function (assert) {
     let store = this.owner.lookup('service:store');
     let adapter = store.adapterFor('application');
     let Person = store.modelFor('person');
@@ -866,19 +839,17 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
     });
     store.peekRecord('person', 1);
 
-    return store
-      .findRecord('person', 1)
-      .then((person) => {
-        assert.strictEqual(person, yehuda, 'The same object is passed through');
+    let person = await store.findRecord('person', 1);
+    assert.strictEqual(person, yehuda, 'The same object is passed through');
 
-        assert.true(get(yehuda, 'isValid'), 'precond - the record is valid');
-        set(yehuda, 'name', 'Yehuda Katz');
-        assert.true(get(yehuda, 'isValid'), 'precond - the record is still valid as far as we know');
+    assert.true(get(yehuda, 'isValid'), 'precond - the record is valid');
+    set(yehuda, 'name', 'Yehuda Katz');
+    assert.true(get(yehuda, 'isValid'), 'precond - the record is still valid as far as we know');
 
-        assert.true(get(yehuda, 'hasDirtyAttributes'), 'the record is dirty');
+    assert.true(get(yehuda, 'hasDirtyAttributes'), 'the record is dirty');
 
-        return yehuda.save();
-      })
+    let reason = yehuda.save();
+    let response = await reason
       .catch((reason) => {
         assert.strictEqual(saveCount, 1, 'The record has been saved once');
         assert.ok(
@@ -899,16 +870,15 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
         assert.true(get(yehuda, 'hasDirtyAttributes'), 'record is still dirty');
         set(yehuda, 'name', 'Brohuda Brokatz');
         return yehuda.save();
-      })
-      .then((person) => {
-        assert.strictEqual(saveCount, 3, 'The record has been saved thrice');
-        assert.true(get(yehuda, 'isValid'), 'record is valid');
-        assert.false(get(yehuda, 'hasDirtyAttributes'), 'record is not dirty');
-        assert.true(get(yehuda, 'errors.isEmpty'), 'record has no errors');
       });
+
+    assert.strictEqual(saveCount, 3, 'The record has been saved thrice');
+    assert.true(get(response, 'isValid'), 'record is valid');
+    assert.false(get(response, 'hasDirtyAttributes'), 'record is not dirty');
+    assert.true(get(response, 'errors.isEmpty'), 'record has no errors');
   });
 
-  test('if a updated record is marked as erred by the server, it enters an error state', function (assert) {
+  test('if a updated record is marked as erred by the server, it enters an error state', async function (assert) {
     let store = this.owner.lookup('service:store');
     let adapter = store.adapterFor('application');
 
@@ -930,17 +900,15 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
     });
     store.peekRecord('person', 1);
 
-    store
-      .findRecord('person', 1)
-      .then((record) => {
-        assert.strictEqual(record, person, 'The person was resolved');
-        person.set('name', 'Jonathan Doe');
-        return person.save();
-      })
-      .catch((reason) => {
-        assert.ok(get(person, 'isError'), 'the record is in the error state');
-        assert.strictEqual(get(person, 'adapterError'), error, 'error object is exposed');
-      });
+    let record = await store.findRecord('person', 1);
+
+    assert.strictEqual(record, person, 'The person was resolved');
+    person.set('name', 'Jonathan Doe');
+    let reason = person.save();
+    reason.catch(() => {
+      assert.ok(get(person, 'isError'), 'the record is in the error state');
+      assert.strictEqual(get(person, 'adapterError'), error, 'error object is exposed');
+    });
   });
 
   test('can be created after the Store', function (assert) {
@@ -1039,7 +1007,7 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
     assert.ok(true, 'no findMany triggered');
   });
 
-  test("relationships don't get reset if the links is the same", function (assert) {
+  test("relationships don't get reset if the links is the same", async function (assert) {
     let store = this.owner.lookup('service:store');
     let adapter = store.adapterFor('application');
     let Person = store.modelFor('person');
@@ -1074,42 +1042,36 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
       },
     });
 
-    let tom, dogs;
+    let person = await store.findRecord('person', 1);
 
-    store
-      .findRecord('person', 1)
-      .then((person) => {
-        tom = person;
-        dogs = tom.get('dogs');
-        return dogs;
-      })
-      .then((dogs) => {
-        assert.strictEqual(dogs.get('length'), 1, 'The dogs are loaded');
-        store.push({
-          data: {
-            type: 'person',
-            id: '1',
-            attributes: {
-              name: 'Tom Dale',
-            },
-            relationships: {
-              dogs: {
-                links: {
-                  related: '/dogs',
-                },
-              },
+    let tom = person;
+    let dogs = tom.get('dogs');
+    let record = await dogs;
+
+    assert.strictEqual(record.get('length'), 1, 'The dogs are loaded');
+    store.push({
+      data: {
+        type: 'person',
+        id: '1',
+        attributes: {
+          name: 'Tom Dale',
+        },
+        relationships: {
+          dogs: {
+            links: {
+              related: '/dogs',
             },
           },
-        });
-        assert.ok(typeof tom.dogs.then === 'function', 'dogs is a thenable');
-        return tom.get('dogs');
-      })
-      .then((dogs) => {
-        assert.strictEqual(dogs.get('length'), 1, 'The same dogs are loaded');
-      });
+        },
+      },
+    });
+    assert.ok(typeof tom.dogs.then === 'function', 'dogs is a thenable');
+    let record2 = await tom.get('dogs');
+
+    assert.strictEqual(record2.get('length'), 1, 'The same dogs are loaded');
   });
 
-  test('async hasMany always returns a promise', function (assert) {
+  test('async hasMany always returns a promise', async function (assert) {
     let store = this.owner.lookup('service:store');
     let adapter = store.adapterFor('application');
     let Person = store.modelFor('person');
@@ -1137,9 +1099,8 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
 
     assert.ok(typeof tom.dogs.then === 'function', 'dogs is a thenable before save');
 
-    return tom.save().then(() => {
-      assert.ok(typeof tom.dogs.then === 'function', 'dogs is a thenable after save');
-    });
+    await tom.save();
+    assert.ok(typeof tom.dogs.then === 'function', 'dogs is a thenable after save');
   });
 
   test('createRecord receives a snapshot', function (assert) {
@@ -1498,7 +1459,7 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
     store.findAll('person', { include: 'books' });
   });
 
-  test('An async hasMany relationship with links should not trigger shouldBackgroundReloadRecord', function (assert) {
+  test('An async hasMany relationship with links should not trigger shouldBackgroundReloadRecord', async function (assert) {
     const Post = Model.extend({
       name: attr('string'),
       comments: hasMany('comment', { async: true }),
@@ -1539,14 +1500,11 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
 
     let store = this.owner.lookup('service:store');
 
-    store
-      .findRecord('post', '1')
-      .then((post) => {
-        return post.get('comments');
-      })
-      .then((comments) => {
-        assert.strictEqual(comments.get('length'), 3);
-      });
+    let post = await store.findRecord('post', '1');
+
+    let comments = await post.get('comments');
+
+    assert.strictEqual(comments.get('length'), 3);
   });
 
   testInDebug('There should be a friendly error for if the adapter does not implement createRecord', function (assert) {
