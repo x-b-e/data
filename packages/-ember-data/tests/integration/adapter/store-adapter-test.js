@@ -25,21 +25,23 @@ function moveRecordOutOfInFlight(record) {
 module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration test', function (hooks) {
   setupTest(hooks);
 
-  test('Records loaded multiple times and retrieved in recordArray are ready to send state events', async function (assert) {
-    class Person extends Model {
-      @attr('string') updatedAt;
-      @attr('string') name;
-    }
+  hooks.beforeEach(function () {
+    const Person = Model.extend({
+      updatedAt: attr('string'),
+      name: attr('string'),
+    });
 
-    class Dog extends Model {
-      @attr('string') name;
-    }
+    const Dog = Model.extend({
+      name: attr('string'),
+    });
 
-    this.owner.register('model:person', Person);
-    this.owner.register('model:dog', Dog);
     this.owner.register('adapter:application', JSONAPIAdapter.extend());
     this.owner.register('serializer:application', JSONAPISerializer.extend());
+    this.owner.register('model:person', Person);
+    this.owner.register('model:dog', Dog);
+  });
 
+  test('Records loaded multiple times and retrieved in recordArray are ready to send state events', async function (assert) {
     let store = this.owner.lookup('service:store');
     let adapter = store.adapterFor('application');
 
@@ -77,22 +79,9 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
   });
 
   test('by default, createRecords calls createRecord once per record', async function (assert) {
-    class Person extends Model {
-      @attr('string') updatedAt;
-      @attr('string') name;
-    }
-
-    class Dog extends Model {
-      @attr('string') name;
-    }
-
-    this.owner.register('model:person', Person);
-    this.owner.register('model:dog', Dog);
-    this.owner.register('adapter:application', JSONAPIAdapter.extend());
-    this.owner.register('serializer:application', JSONAPISerializer.extend());
-
     let store = this.owner.lookup('service:store');
     let adapter = store.adapterFor('application');
+    let Person = store.modelFor('person');
 
     let count = 1;
     adapter.shouldBackgroundReloadRecord = () => false;
@@ -140,22 +129,9 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
   });
 
   test('by default, updateRecords calls updateRecord once per record', async function (assert) {
-    class Person extends Model {
-      @attr('string') updatedAt;
-      @attr('string') name;
-    }
-
-    class Dog extends Model {
-      @attr('string') name;
-    }
-
-    this.owner.register('model:person', Person);
-    this.owner.register('model:dog', Dog);
-    this.owner.register('adapter:application', JSONAPIAdapter.extend());
-    this.owner.register('serializer:application', JSONAPISerializer.extend());
-
     let store = this.owner.lookup('service:store');
     let adapter = store.adapterFor('application');
+    let Person = store.modelFor('person');
 
     let count = 0;
     adapter.shouldBackgroundReloadRecord = () => false;
@@ -224,22 +200,9 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
   });
 
   test('calling store.didSaveRecord can provide an optional hash', async function (assert) {
-    class Person extends Model {
-      @attr('string') updatedAt;
-      @attr('string') name;
-    }
-
-    class Dog extends Model {
-      @attr('string') name;
-    }
-
-    this.owner.register('model:person', Person);
-    this.owner.register('model:dog', Dog);
-    this.owner.register('adapter:application', JSONAPIAdapter.extend());
-    this.owner.register('serializer:application', JSONAPISerializer.extend());
-
     let store = this.owner.lookup('service:store');
     let adapter = store.adapterFor('application');
+    let Person = store.modelFor('person');
 
     let count = 0;
     adapter.shouldBackgroundReloadRecord = () => false;
@@ -308,24 +271,11 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
   });
 
   test('by default, deleteRecord calls deleteRecord once per record', async function (assert) {
-    class Person extends Model {
-      @attr('string') updatedAt;
-      @attr('string') name;
-    }
-
-    class Dog extends Model {
-      @attr('string') name;
-    }
-
-    this.owner.register('model:person', Person);
-    this.owner.register('model:dog', Dog);
-    this.owner.register('adapter:application', JSONAPIAdapter.extend());
-    this.owner.register('serializer:application', JSONAPISerializer.extend());
-
     assert.expect(4);
 
     let store = this.owner.lookup('service:store');
     let adapter = store.adapterFor('application');
+    let Person = store.modelFor('person');
 
     let count = 0;
     adapter.shouldBackgroundReloadRecord = () => false;
@@ -380,24 +330,11 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
   });
 
   test('by default, destroyRecord calls deleteRecord once per record without requiring .save', async function (assert) {
-    class Person extends Model {
-      @attr('string') updatedAt;
-      @attr('string') name;
-    }
-
-    class Dog extends Model {
-      @attr('string') name;
-    }
-
-    this.owner.register('model:person', Person);
-    this.owner.register('model:dog', Dog);
-    this.owner.register('adapter:application', JSONAPIAdapter.extend());
-    this.owner.register('serializer:application', JSONAPISerializer.extend());
-
     assert.expect(4);
 
     let store = this.owner.lookup('service:store');
     let adapter = store.adapterFor('application');
+    let Person = store.modelFor('person');
 
     let count = 0;
 
@@ -450,20 +387,6 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
   });
 
   test('if an existing model is edited then deleted, deleteRecord is called on the adapter', async function (assert) {
-    class Person extends Model {
-      @attr('string') updatedAt;
-      @attr('string') name;
-    }
-
-    class Dog extends Model {
-      @attr('string') name;
-    }
-
-    this.owner.register('model:person', Person);
-    this.owner.register('model:dog', Dog);
-    this.owner.register('adapter:application', JSONAPIAdapter.extend());
-    this.owner.register('serializer:application', JSONAPISerializer.extend());
-
     assert.expect(5);
 
     let store = this.owner.lookup('service:store');
@@ -507,20 +430,6 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
   });
 
   test('if a deleted record errors, it enters the error state', async function (assert) {
-    class Person extends Model {
-      @attr('string') updatedAt;
-      @attr('string') name;
-    }
-
-    class Dog extends Model {
-      @attr('string') name;
-    }
-
-    this.owner.register('model:person', Person);
-    this.owner.register('model:dog', Dog);
-    this.owner.register('adapter:application', JSONAPIAdapter.extend());
-    this.owner.register('serializer:application', JSONAPISerializer.extend());
-
     let store = this.owner.lookup('service:store');
     let adapter = store.adapterFor('application');
 
@@ -564,22 +473,9 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
   });
 
   test('if a created record is marked as invalid by the server, it enters an error state', async function (assert) {
-    class Person extends Model {
-      @attr('string') updatedAt;
-      @attr('string') name;
-    }
-
-    class Dog extends Model {
-      @attr('string') name;
-    }
-
-    this.owner.register('model:person', Person);
-    this.owner.register('model:dog', Dog);
-    this.owner.register('adapter:application', JSONAPIAdapter.extend());
-    this.owner.register('serializer:application', JSONAPISerializer.extend());
-
     let store = this.owner.lookup('service:store');
     let adapter = store.adapterFor('application');
+    let Person = store.modelFor('person');
 
     adapter.createRecord = function (store, type, snapshot) {
       assert.strictEqual(type, Person, 'the type is correct');
@@ -632,20 +528,6 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
   });
 
   test('allows errors on arbitrary properties on create', async function (assert) {
-    class Person extends Model {
-      @attr('string') updatedAt;
-      @attr('string') name;
-    }
-
-    class Dog extends Model {
-      @attr('string') name;
-    }
-
-    this.owner.register('model:person', Person);
-    this.owner.register('model:dog', Dog);
-    this.owner.register('adapter:application', JSONAPIAdapter.extend());
-    this.owner.register('serializer:application', JSONAPISerializer.extend());
-
     let store = this.owner.lookup('service:store');
     let adapter = store.adapterFor('application');
 
@@ -700,22 +582,9 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
   });
 
   test('if a created record is marked as invalid by the server, you can attempt the save again', async function (assert) {
-    class Person extends Model {
-      @attr('string') updatedAt;
-      @attr('string') name;
-    }
-
-    class Dog extends Model {
-      @attr('string') name;
-    }
-
-    this.owner.register('model:person', Person);
-    this.owner.register('model:dog', Dog);
-    this.owner.register('adapter:application', JSONAPIAdapter.extend());
-    this.owner.register('serializer:application', JSONAPISerializer.extend());
-
     let store = this.owner.lookup('service:store');
     let adapter = store.adapterFor('application');
+    let Person = store.modelFor('person');
 
     let saveCount = 0;
     adapter.createRecord = function (store, type, snapshot) {
@@ -779,20 +648,6 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
   });
 
   test('if a created record is marked as erred by the server, it enters an error state', function (assert) {
-    class Person extends Model {
-      @attr('string') updatedAt;
-      @attr('string') name;
-    }
-
-    class Dog extends Model {
-      @attr('string') name;
-    }
-
-    this.owner.register('model:person', Person);
-    this.owner.register('model:dog', Dog);
-    this.owner.register('adapter:application', JSONAPIAdapter.extend());
-    this.owner.register('serializer:application', JSONAPISerializer.extend());
-
     let store = this.owner.lookup('service:store');
     let adapter = store.adapterFor('application');
 
@@ -811,22 +666,9 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
   });
 
   test('if an updated record is marked as invalid by the server, it enters an error state', async function (assert) {
-    class Person extends Model {
-      @attr('string') updatedAt;
-      @attr('string') name;
-    }
-
-    class Dog extends Model {
-      @attr('string') name;
-    }
-
-    this.owner.register('model:person', Person);
-    this.owner.register('model:dog', Dog);
-    this.owner.register('adapter:application', JSONAPIAdapter.extend());
-    this.owner.register('serializer:application', JSONAPISerializer.extend());
-
     let store = this.owner.lookup('service:store');
     let adapter = store.adapterFor('application');
+    let Person = store.modelFor('person');
 
     adapter.shouldBackgroundReloadRecord = () => false;
     adapter.updateRecord = function (store, type, snapshot) {
@@ -889,20 +731,6 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
   });
 
   test('records can have errors on arbitrary properties after update', async function (assert) {
-    class Person extends Model {
-      @attr('string') updatedAt;
-      @attr('string') name;
-    }
-
-    class Dog extends Model {
-      @attr('string') name;
-    }
-
-    this.owner.register('model:person', Person);
-    this.owner.register('model:dog', Dog);
-    this.owner.register('adapter:application', JSONAPIAdapter.extend());
-    this.owner.register('serializer:application', JSONAPISerializer.extend());
-
     let store = this.owner.lookup('service:store');
     let adapter = store.adapterFor('application');
 
@@ -974,22 +802,9 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
   });
 
   test('if an updated record is marked as invalid by the server, you can attempt the save again', async function (assert) {
-    class Person extends Model {
-      @attr('string') updatedAt;
-      @attr('string') name;
-    }
-
-    class Dog extends Model {
-      @attr('string') name;
-    }
-
-    this.owner.register('model:person', Person);
-    this.owner.register('model:dog', Dog);
-    this.owner.register('adapter:application', JSONAPIAdapter.extend());
-    this.owner.register('serializer:application', JSONAPISerializer.extend());
-
     let store = this.owner.lookup('service:store');
     let adapter = store.adapterFor('application');
+    let Person = store.modelFor('person');
 
     let saveCount = 0;
     adapter.shouldBackgroundReloadRecord = () => false;
@@ -1064,20 +879,6 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
   });
 
   test('if a updated record is marked as erred by the server, it enters an error state', async function (assert) {
-    class Person extends Model {
-      @attr('string') updatedAt;
-      @attr('string') name;
-    }
-
-    class Dog extends Model {
-      @attr('string') name;
-    }
-
-    this.owner.register('model:person', Person);
-    this.owner.register('model:dog', Dog);
-    this.owner.register('adapter:application', JSONAPIAdapter.extend());
-    this.owner.register('serializer:application', JSONAPISerializer.extend());
-
     let store = this.owner.lookup('service:store');
     let adapter = store.adapterFor('application');
 
@@ -1111,24 +912,11 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
   });
 
   test('can be created after the Store', function (assert) {
-    class Person extends Model {
-      @attr('string') updatedAt;
-      @attr('string') name;
-    }
-
-    class Dog extends Model {
-      @attr('string') name;
-    }
-
-    this.owner.register('model:person', Person);
-    this.owner.register('model:dog', Dog);
-    this.owner.register('adapter:application', JSONAPIAdapter.extend());
-    this.owner.register('serializer:application', JSONAPISerializer.extend());
-
     assert.expect(1);
 
     let store = this.owner.lookup('service:store');
     let adapter = store.adapterFor('application');
+    let Person = store.modelFor('person');
 
     adapter.findRecord = function (store, type, id, snapshot) {
       assert.strictEqual(type, Person, 'the type is correct');
@@ -1139,23 +927,13 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
   });
 
   test('relationships returned via `commit` do not trigger additional findManys', async function (assert) {
-    class Person extends Model {
-      @attr('string') updatedAt;
-      @attr('string') name;
-      @hasMany('dog', { async: false }) dogs;
-    }
-
-    class Dog extends Model {
-      @attr('string') name;
-    }
-
-    this.owner.register('model:person', Person);
-    this.owner.register('model:dog', Dog);
-    this.owner.register('adapter:application', JSONAPIAdapter.extend());
-    this.owner.register('serializer:application', JSONAPISerializer.extend());
-
     let store = this.owner.lookup('service:store');
     let adapter = store.adapterFor('application');
+    let Person = store.modelFor('person');
+
+    Person.reopen({
+      dogs: hasMany('dog', { async: false }),
+    });
 
     store.push({
       data: {
@@ -1230,23 +1008,13 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
   });
 
   test("relationships don't get reset if the links is the same", async function (assert) {
-    class Person extends Model {
-      @attr('string') updatedAt;
-      @attr('string') name;
-      @hasMany('dog', { async: true }) dogs;
-    }
-
-    class Dog extends Model {
-      @attr('string') name;
-    }
-
-    this.owner.register('model:person', Person);
-    this.owner.register('model:dog', Dog);
-    this.owner.register('adapter:application', JSONAPIAdapter.extend());
-    this.owner.register('serializer:application', JSONAPISerializer.extend());
-
     let store = this.owner.lookup('service:store');
     let adapter = store.adapterFor('application');
+    let Person = store.modelFor('person');
+
+    Person.reopen({
+      dogs: hasMany({ async: true }),
+    });
 
     adapter.shouldBackgroundReloadRecord = () => false;
 
@@ -1304,23 +1072,13 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
   });
 
   test('async hasMany always returns a promise', async function (assert) {
-    class Person extends Model {
-      @attr('string') updatedAt;
-      @attr('string') name;
-      @hasMany('dog', { async: true }) dogs;
-    }
-
-    class Dog extends Model {
-      @attr('string') name;
-    }
-
-    this.owner.register('model:person', Person);
-    this.owner.register('model:dog', Dog);
-    this.owner.register('adapter:application', JSONAPIAdapter.extend());
-    this.owner.register('serializer:application', JSONAPISerializer.extend());
-
     let store = this.owner.lookup('service:store');
     let adapter = store.adapterFor('application');
+    let Person = store.modelFor('person');
+
+    Person.reopen({
+      dogs: hasMany({ async: true }),
+    });
 
     adapter.createRecord = function (store, type, snapshot) {
       return resolve({
@@ -1346,20 +1104,6 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
   });
 
   test('createRecord receives a snapshot', function (assert) {
-    class Person extends Model {
-      @attr('string') updatedAt;
-      @attr('string') name;
-    }
-
-    class Dog extends Model {
-      @attr('string') name;
-    }
-
-    this.owner.register('model:person', Person);
-    this.owner.register('model:dog', Dog);
-    this.owner.register('adapter:application', JSONAPIAdapter.extend());
-    this.owner.register('serializer:application', JSONAPISerializer.extend());
-
     assert.expect(1);
 
     let store = this.owner.lookup('service:store');
@@ -1376,20 +1120,6 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
   });
 
   test('updateRecord receives a snapshot', function (assert) {
-    class Person extends Model {
-      @attr('string') updatedAt;
-      @attr('string') name;
-    }
-
-    class Dog extends Model {
-      @attr('string') name;
-    }
-
-    this.owner.register('model:person', Person);
-    this.owner.register('model:dog', Dog);
-    this.owner.register('adapter:application', JSONAPIAdapter.extend());
-    this.owner.register('serializer:application', JSONAPISerializer.extend());
-
     assert.expect(1);
 
     let store = this.owner.lookup('service:store');
@@ -1418,20 +1148,6 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
   });
 
   test('deleteRecord receives a snapshot', function (assert) {
-    class Person extends Model {
-      @attr('string') updatedAt;
-      @attr('string') name;
-    }
-
-    class Dog extends Model {
-      @attr('string') name;
-    }
-
-    this.owner.register('model:person', Person);
-    this.owner.register('model:dog', Dog);
-    this.owner.register('adapter:application', JSONAPIAdapter.extend());
-    this.owner.register('serializer:application', JSONAPISerializer.extend());
-
     assert.expect(1);
 
     let store = this.owner.lookup('service:store');
@@ -1460,20 +1176,6 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
   });
 
   test('findRecord receives a snapshot', function (assert) {
-    class Person extends Model {
-      @attr('string') updatedAt;
-      @attr('string') name;
-    }
-
-    class Dog extends Model {
-      @attr('string') name;
-    }
-
-    this.owner.register('model:person', Person);
-    this.owner.register('model:dog', Dog);
-    this.owner.register('adapter:application', JSONAPIAdapter.extend());
-    this.owner.register('serializer:application', JSONAPISerializer.extend());
-
     assert.expect(1);
 
     let store = this.owner.lookup('service:store');
@@ -1488,25 +1190,15 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
   });
 
   test('findMany receives an array of snapshots', function (assert) {
-    class Person extends Model {
-      @attr('string') updatedAt;
-      @attr('string') name;
-      @hasMany('dog', { async: true }) dogs;
-    }
-
-    class Dog extends Model {
-      @attr('string') name;
-    }
-
-    this.owner.register('model:person', Person);
-    this.owner.register('model:dog', Dog);
-    this.owner.register('adapter:application', JSONAPIAdapter.extend());
-    this.owner.register('serializer:application', JSONAPISerializer.extend());
-
     assert.expect(2);
 
     let store = this.owner.lookup('service:store');
     let adapter = store.adapterFor('application');
+    let Person = store.modelFor('person');
+
+    Person.reopen({
+      dogs: hasMany({ async: true }),
+    });
 
     adapter.coalesceFindRequests = true;
     adapter.findMany = function (store, type, ids, snapshots) {
@@ -1542,25 +1234,15 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
   });
 
   test('findHasMany receives a snapshot', function (assert) {
-    class Person extends Model {
-      @attr('string') updatedAt;
-      @attr('string') name;
-      @hasMany('dog', { async: true }) dogs;
-    }
-
-    class Dog extends Model {
-      @attr('string') name;
-    }
-
-    this.owner.register('model:person', Person);
-    this.owner.register('model:dog', Dog);
-    this.owner.register('adapter:application', JSONAPIAdapter.extend());
-    this.owner.register('serializer:application', JSONAPISerializer.extend());
-
     assert.expect(1);
 
     let store = this.owner.lookup('service:store');
     let adapter = store.adapterFor('application');
+    let Person = store.modelFor('person');
+
+    Person.reopen({
+      dogs: hasMany({ async: true }),
+    });
 
     adapter.findHasMany = function (store, snapshot, link, relationship) {
       assert.ok(snapshot instanceof Snapshot, 'snapshot is an instance of Snapshot');
@@ -1593,25 +1275,15 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
   });
 
   test('findBelongsTo receives a snapshot', function (assert) {
-    class Person extends Model {
-      @attr('string') updatedAt;
-      @attr('string') name;
-      @belongsTo('dog', { async: true }) dog;
-    }
-
-    class Dog extends Model {
-      @attr('string') name;
-    }
-
-    this.owner.register('model:person', Person);
-    this.owner.register('model:dog', Dog);
-    this.owner.register('adapter:application', JSONAPIAdapter.extend());
-    this.owner.register('serializer:application', JSONAPISerializer.extend());
-
     assert.expect(1);
 
     let store = this.owner.lookup('service:store');
     let adapter = store.adapterFor('application');
+    let Person = store.modelFor('person');
+
+    Person.reopen({
+      dog: belongsTo({ async: true }),
+    });
 
     adapter.findBelongsTo = function (store, snapshot, link, relationship) {
       assert.ok(snapshot instanceof Snapshot, 'snapshot is an instance of Snapshot');
@@ -1639,20 +1311,6 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
   });
 
   test('record.save should pass adapterOptions to the updateRecord method', function (assert) {
-    class Person extends Model {
-      @attr('string') updatedAt;
-      @attr('string') name;
-    }
-
-    class Dog extends Model {
-      @attr('string') name;
-    }
-
-    this.owner.register('model:person', Person);
-    this.owner.register('model:dog', Dog);
-    this.owner.register('adapter:application', JSONAPIAdapter.extend());
-    this.owner.register('serializer:application', JSONAPISerializer.extend());
-
     assert.expect(1);
 
     let store = this.owner.lookup('service:store');
@@ -1677,20 +1335,6 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
   });
 
   test('record.save should pass adapterOptions to the createRecord method', function (assert) {
-    class Person extends Model {
-      @attr('string') updatedAt;
-      @attr('string') name;
-    }
-
-    class Dog extends Model {
-      @attr('string') name;
-    }
-
-    this.owner.register('model:person', Person);
-    this.owner.register('model:dog', Dog);
-    this.owner.register('adapter:application', JSONAPIAdapter.extend());
-    this.owner.register('serializer:application', JSONAPISerializer.extend());
-
     assert.expect(1);
 
     let store = this.owner.lookup('service:store');
@@ -1705,20 +1349,6 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
   });
 
   test('record.save should pass adapterOptions to the deleteRecord method', function (assert) {
-    class Person extends Model {
-      @attr('string') updatedAt;
-      @attr('string') name;
-    }
-
-    class Dog extends Model {
-      @attr('string') name;
-    }
-
-    this.owner.register('model:person', Person);
-    this.owner.register('model:dog', Dog);
-    this.owner.register('adapter:application', JSONAPIAdapter.extend());
-    this.owner.register('serializer:application', JSONAPISerializer.extend());
-
     assert.expect(1);
 
     let store = this.owner.lookup('service:store');
@@ -1743,20 +1373,6 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
   });
 
   test('store.findRecord should pass adapterOptions to adapter.findRecord', function (assert) {
-    class Person extends Model {
-      @attr('string') updatedAt;
-      @attr('string') name;
-    }
-
-    class Dog extends Model {
-      @attr('string') name;
-    }
-
-    this.owner.register('model:person', Person);
-    this.owner.register('model:dog', Dog);
-    this.owner.register('adapter:application', JSONAPIAdapter.extend());
-    this.owner.register('serializer:application', JSONAPISerializer.extend());
-
     assert.expect(1);
 
     let store = this.owner.lookup('service:store');
@@ -1771,20 +1387,6 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
   });
 
   test('store.query should pass adapterOptions to adapter.query ', function (assert) {
-    class Person extends Model {
-      @attr('string') updatedAt;
-      @attr('string') name;
-    }
-
-    class Dog extends Model {
-      @attr('string') name;
-    }
-
-    this.owner.register('model:person', Person);
-    this.owner.register('model:dog', Dog);
-    this.owner.register('adapter:application', JSONAPIAdapter.extend());
-    this.owner.register('serializer:application', JSONAPISerializer.extend());
-
     assert.expect(2);
 
     let store = this.owner.lookup('service:store');
@@ -1800,20 +1402,6 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
   });
 
   test('store.queryRecord should pass adapterOptions to adapter.queryRecord', function (assert) {
-    class Person extends Model {
-      @attr('string') updatedAt;
-      @attr('string') name;
-    }
-
-    class Dog extends Model {
-      @attr('string') name;
-    }
-
-    this.owner.register('model:person', Person);
-    this.owner.register('model:dog', Dog);
-    this.owner.register('adapter:application', JSONAPIAdapter.extend());
-    this.owner.register('serializer:application', JSONAPISerializer.extend());
-
     assert.expect(2);
 
     let store = this.owner.lookup('service:store');
@@ -1829,20 +1417,6 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
   });
 
   test("store.findRecord should pass 'include' to adapter.findRecord", function (assert) {
-    class Person extends Model {
-      @attr('string') updatedAt;
-      @attr('string') name;
-    }
-
-    class Dog extends Model {
-      @attr('string') name;
-    }
-
-    this.owner.register('model:person', Person);
-    this.owner.register('model:dog', Dog);
-    this.owner.register('adapter:application', JSONAPIAdapter.extend());
-    this.owner.register('serializer:application', JSONAPISerializer.extend());
-
     assert.expect(1);
 
     let store = this.owner.lookup('service:store');
@@ -1857,20 +1431,6 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
   });
 
   test('store.findAll should pass adapterOptions to the adapter.findAll method', function (assert) {
-    class Person extends Model {
-      @attr('string') updatedAt;
-      @attr('string') name;
-    }
-
-    class Dog extends Model {
-      @attr('string') name;
-    }
-
-    this.owner.register('model:person', Person);
-    this.owner.register('model:dog', Dog);
-    this.owner.register('adapter:application', JSONAPIAdapter.extend());
-    this.owner.register('serializer:application', JSONAPISerializer.extend());
-
     assert.expect(1);
 
     let store = this.owner.lookup('service:store');
@@ -1886,20 +1446,6 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
   });
 
   test("store.findAll should pass 'include' to adapter.findAll", function (assert) {
-    class Person extends Model {
-      @attr('string') updatedAt;
-      @attr('string') name;
-    }
-
-    class Dog extends Model {
-      @attr('string') name;
-    }
-
-    this.owner.register('model:person', Person);
-    this.owner.register('model:dog', Dog);
-    this.owner.register('adapter:application', JSONAPIAdapter.extend());
-    this.owner.register('serializer:application', JSONAPISerializer.extend());
-
     assert.expect(1);
 
     let store = this.owner.lookup('service:store');
@@ -1914,25 +1460,16 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
   });
 
   test('An async hasMany relationship with links should not trigger shouldBackgroundReloadRecord', async function (assert) {
-    class Person extends Model {
-      @attr('string') updatedAt;
-      @attr('string') name;
-    }
+    const Post = Model.extend({
+      name: attr('string'),
+      comments: hasMany('comment', { async: true }),
+    });
 
-    class Dog extends Model {
-      @attr('string') name;
-    }
+    const Comment = Model.extend({
+      name: attr('string'),
+    });
 
-    class Post extends Model {
-      @attr('string') name;
-      @hasMany('comment', { async: true }) comments;
-    }
-
-    class Comment extends Model {
-      @attr('string') name;
-    }
-
-    class ApplicationAdapter extends RESTAdapter {
+    const ApplicationAdapter = RESTAdapter.extend({
       findRecord() {
         return {
           posts: {
@@ -1941,7 +1478,7 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
             links: { comments: '/posts/1/comments' },
           },
         };
-      }
+      },
       findHasMany() {
         return resolve({
           comments: [
@@ -1950,48 +1487,27 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
             { id: '3', name: 'What is omakase?' },
           ],
         });
-      }
+      },
       shouldBackgroundReloadRecord() {
         assert.ok(false, 'shouldBackgroundReloadRecord should not be called');
-      }
-    }
+      },
+    });
 
-    this.owner.register('model:person', Person);
-    this.owner.register('model:dog', Dog);
     this.owner.register('model:post', Post);
     this.owner.register('model:comment', Comment);
     this.owner.register('adapter:application', ApplicationAdapter);
     this.owner.register('serializer:application', RESTSerializer.extend());
-    this.owner.register('adapter:application', JSONAPIAdapter.extend());
-    this.owner.register('serializer:application', JSONAPISerializer.extend());
 
     let store = this.owner.lookup('service:store');
 
-    store
-      .findRecord('post', '1')
-      .then((post) => {
-        return post.comments;
-      })
-      .then((comments) => {
-        assert.strictEqual(comments.length, 3);
-      });
+    let post = await store.findRecord('post', '1');
+
+    let comments = await post.comments;
+
+    assert.strictEqual(comments.length, 3);
   });
 
   testInDebug('There should be a friendly error for if the adapter does not implement createRecord', function (assert) {
-    class Person extends Model {
-      @attr('string') updatedAt;
-      @attr('string') name;
-    }
-
-    class Dog extends Model {
-      @attr('string') name;
-    }
-
-    this.owner.register('model:person', Person);
-    this.owner.register('model:dog', Dog);
-    this.owner.register('adapter:application', JSONAPIAdapter.extend());
-    this.owner.register('serializer:application', JSONAPISerializer.extend());
-
     let store = this.owner.lookup('service:store');
     let adapter = store.adapterFor('application');
 
@@ -2007,20 +1523,6 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
   });
 
   testInDebug('There should be a friendly error for if the adapter does not implement updateRecord', function (assert) {
-    class Person extends Model {
-      @attr('string') updatedAt;
-      @attr('string') name;
-    }
-
-    class Dog extends Model {
-      @attr('string') name;
-    }
-
-    this.owner.register('model:person', Person);
-    this.owner.register('model:dog', Dog);
-    this.owner.register('adapter:application', JSONAPIAdapter.extend());
-    this.owner.register('serializer:application', JSONAPISerializer.extend());
-
     let store = this.owner.lookup('service:store');
     let adapter = store.adapterFor('application');
 
@@ -2036,20 +1538,6 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
   });
 
   testInDebug('There should be a friendly error for if the adapter does not implement deleteRecord', function (assert) {
-    class Person extends Model {
-      @attr('string') updatedAt;
-      @attr('string') name;
-    }
-
-    class Dog extends Model {
-      @attr('string') name;
-    }
-
-    this.owner.register('model:person', Person);
-    this.owner.register('model:dog', Dog);
-    this.owner.register('adapter:application', JSONAPIAdapter.extend());
-    this.owner.register('serializer:application', JSONAPISerializer.extend());
-
     let store = this.owner.lookup('service:store');
     let adapter = store.adapterFor('application');
 
