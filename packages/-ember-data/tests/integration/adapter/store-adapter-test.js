@@ -1013,7 +1013,7 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
     let adapter = store.adapterFor('application');
 
     class Person extends Model {
-      @hasMany('dog', { async: true }) dogs;
+      @hasMany({ async: true }) dogs;
     }
 
     this.owner.register('model:person', Person);
@@ -1077,7 +1077,7 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
     let store = this.owner.lookup('service:store');
     let adapter = store.adapterFor('application');
     class Person extends Model {
-      @hasMany('dog', { async: true }) dogs;
+      @hasMany({ async: true }) dogs;
     }
 
     this.owner.register('model:person', Person);
@@ -1197,7 +1197,7 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
     let store = this.owner.lookup('service:store');
     let adapter = store.adapterFor('application');
     class Person extends Model {
-      @hasMany('dog', { async: true }) dogs;
+      @hasMany({ async: true }) dogs;
     }
 
     this.owner.register('model:person', Person);
@@ -1241,7 +1241,7 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
     let store = this.owner.lookup('service:store');
     let adapter = store.adapterFor('application');
     class Person extends Model {
-      @hasMany('dog', { async: true }) dogs;
+      @hasMany({ async: true }) dogs;
     }
 
     this.owner.register('model:person', Person);
@@ -1463,16 +1463,16 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
   });
 
   test('An async hasMany relationship with links should not trigger shouldBackgroundReloadRecord', async function (assert) {
-    const Post = Model.extend({
-      name: attr('string'),
-      comments: hasMany('comment', { async: true }),
-    });
+    class Post extends Model {
+      @attr('string') name;
+      @hasMany('comment', { async: true }) comments;
+    }
 
-    const Comment = Model.extend({
-      name: attr('string'),
-    });
+    class Comment extends Model {
+      @attr('string') name;
+    }
 
-    const ApplicationAdapter = RESTAdapter.extend({
+    class ApplicationAdapter extends RESTAdapter {
       findRecord() {
         return {
           posts: {
@@ -1481,7 +1481,7 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
             links: { comments: '/posts/1/comments' },
           },
         };
-      },
+      }
       findHasMany() {
         return resolve({
           comments: [
@@ -1490,11 +1490,11 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
             { id: '3', name: 'What is omakase?' },
           ],
         });
-      },
+      }
       shouldBackgroundReloadRecord() {
         assert.ok(false, 'shouldBackgroundReloadRecord should not be called');
-      },
-    });
+      }
+    }
 
     this.owner.register('model:post', Post);
     this.owner.register('model:comment', Comment);
