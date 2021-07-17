@@ -26,14 +26,14 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
   setupTest(hooks);
 
   hooks.beforeEach(function () {
-    const Person = Model.extend({
-      updatedAt: attr('string'),
-      name: attr('string'),
-    });
+    class Person extends Model {
+      @attr('string') updatedAt;
+      @attr('string') name;
+    }
 
-    const Dog = Model.extend({
-      name: attr('string'),
-    });
+    class Dog extends Model {
+      @attr('string') name;
+    }
 
     this.owner.register('adapter:application', JSONAPIAdapter.extend());
     this.owner.register('serializer:application', JSONAPISerializer.extend());
@@ -929,11 +929,12 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
   test('relationships returned via `commit` do not trigger additional findManys', async function (assert) {
     let store = this.owner.lookup('service:store');
     let adapter = store.adapterFor('application');
-    let Person = store.modelFor('person');
 
-    Person.reopen({
-      dogs: hasMany('dog', { async: false }),
-    });
+    class Person extends Model {
+      @hasMany('dog', { async: false }) dogs;
+    }
+
+    this.owner.register('model:person', Person);
 
     store.push({
       data: {
@@ -1010,11 +1011,12 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
   test("relationships don't get reset if the links is the same", async function (assert) {
     let store = this.owner.lookup('service:store');
     let adapter = store.adapterFor('application');
-    let Person = store.modelFor('person');
 
-    Person.reopen({
-      dogs: hasMany({ async: true }),
-    });
+    class Person extends Model {
+      @hasMany('dog', { async: true }) dogs;
+    }
+
+    this.owner.register('model:person', Person);
 
     adapter.shouldBackgroundReloadRecord = () => false;
 
@@ -1074,11 +1076,11 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
   test('async hasMany always returns a promise', async function (assert) {
     let store = this.owner.lookup('service:store');
     let adapter = store.adapterFor('application');
-    let Person = store.modelFor('person');
+    class Person extends Model {
+      @hasMany('dog', { async: true }) dogs;
+    }
 
-    Person.reopen({
-      dogs: hasMany({ async: true }),
-    });
+    this.owner.register('model:person', Person);
 
     adapter.createRecord = function (store, type, snapshot) {
       return resolve({
@@ -1194,11 +1196,11 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
 
     let store = this.owner.lookup('service:store');
     let adapter = store.adapterFor('application');
-    let Person = store.modelFor('person');
+    class Person extends Model {
+      @hasMany('dog', { async: true }) dogs;
+    }
 
-    Person.reopen({
-      dogs: hasMany({ async: true }),
-    });
+    this.owner.register('model:person', Person);
 
     adapter.coalesceFindRequests = true;
     adapter.findMany = function (store, type, ids, snapshots) {
@@ -1238,11 +1240,11 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
 
     let store = this.owner.lookup('service:store');
     let adapter = store.adapterFor('application');
-    let Person = store.modelFor('person');
+    class Person extends Model {
+      @hasMany('dog', { async: true }) dogs;
+    }
 
-    Person.reopen({
-      dogs: hasMany({ async: true }),
-    });
+    this.owner.register('model:person', Person);
 
     adapter.findHasMany = function (store, snapshot, link, relationship) {
       assert.ok(snapshot instanceof Snapshot, 'snapshot is an instance of Snapshot');
@@ -1279,11 +1281,12 @@ module('integration/adapter/store-adapter - DS.Store and DS.Adapter integration 
 
     let store = this.owner.lookup('service:store');
     let adapter = store.adapterFor('application');
-    let Person = store.modelFor('person');
 
-    Person.reopen({
-      dog: belongsTo({ async: true }),
-    });
+    class Person extends Model {
+      @belongsTo('dog', { async: true }) dog;
+    }
+
+    this.owner.register('model:person', Person);
 
     adapter.findBelongsTo = function (store, snapshot, link, relationship) {
       assert.ok(snapshot instanceof Snapshot, 'snapshot is an instance of Snapshot');
