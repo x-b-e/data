@@ -160,10 +160,13 @@ function generatePackageReference(version, tarballName) {
   if (options.referenceViaVersion === true) {
     return version;
   }
+  return 'file:../' + tarballName;
+  /*
   if (options.hostPath.indexOf('file:') === 0) {
     return path.join(options.hostPath, tarballName);
   }
-  return new url.URL(tarballName, options.hostPath);
+  */
+  //new url.URL(tarballName, options.hostPath);
 }
 
 function insertTarballsToPackageJson(fileLocation, options = {}) {
