@@ -245,7 +245,7 @@ export default EmberObject.extend(MutableArray, {
     // push/add/removeObject may still be problematic
     // but this is a more traditionally expected forEach bug.
     const arr = this.currentState;
-    const length = arr.length;
+    const length = this.length; // we need to access length to ensure we are consumed
 
     for (let index = 0; index < length; index++) {
       callback.call(target, arr[index].getRecord(), index, this);
