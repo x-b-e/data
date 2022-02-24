@@ -200,7 +200,6 @@ abstract class CoreStore extends Service {
 
   // DEBUG-only properties
   declare _trackedAsyncRequests: AsyncTrackingToken[];
-  shouldTrackAsyncRequests: boolean = false;
   generateStackTracesForTrackedRequests: boolean = false;
   declare _trackAsyncRequestStart: (str: string) => void;
   declare _trackAsyncRequestEnd: (token: AsyncTrackingToken) => void;
@@ -274,9 +273,6 @@ abstract class CoreStore extends Service {
     this.identifierCache = new IdentifierCache();
 
     if (DEBUG) {
-      if (this.shouldTrackAsyncRequests === undefined) {
-        this.shouldTrackAsyncRequests = false;
-      }
       if (this.generateStackTracesForTrackedRequests === undefined) {
         this.generateStackTracesForTrackedRequests = false;
       }
@@ -315,11 +311,8 @@ abstract class CoreStore extends Service {
       };
 
       this.__asyncWaiter = () => {
-        let shouldTrack = this.shouldTrackAsyncRequests;
         let tracked = this._trackedAsyncRequests;
-        let isSettled = tracked.length === 0;
-
-        return shouldTrack !== true || isSettled;
+        return tracked.length === 0;
       };
 
       registerWaiter(this.__asyncWaiter);
@@ -3186,26 +3179,14 @@ abstract class CoreStore extends Service {
 
     if (DEBUG) {
       unregisterWaiter(this.__asyncWaiter);
-      let shouldTrack = this.shouldTrackAsyncRequests;
       let tracked = this._trackedAsyncRequests;
       let isSettled = tracked.length === 0;
 
       if (!isSettled) {
-        if (shouldTrack) {
-          throw new Error(
-            'Async Request leaks detected. Add a breakpoint here and set `store.generateStackTracesForTrackedRequests = true;`to inspect traces for leak origins:\n\t - ' +
-              tracked.map((o) => o.label).join('\n\t - ')
-          );
-        } else {
-          warn(
-            'Async Request leaks detected. Add a breakpoint here and set `store.generateStackTracesForTrackedRequests = true;`to inspect traces for leak origins:\n\t - ' +
-              tracked.map((o) => o.label).join('\n\t - '),
-            false,
-            {
-              id: 'ds.async.leak.detected',
-            }
-          );
-        }
+        throw new Error(
+          'Async Request leaks detected. Add a breakpoint here and set `store.generateStackTracesForTrackedRequests = true;`to inspect traces for leak origins:\n\t - ' +
+            tracked.map((o) => o.label).join('\n\t - ')
+        );
       }
     }
   }
