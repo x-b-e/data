@@ -88,7 +88,9 @@ export class RelationshipDefinition implements RelationshipSchema {
 
     if (shouldFindInverse(this.meta)) {
       inverse = modelClass.inverseFor(this.key, store);
-    } else if (DEBUG) {
+    }
+    // TODO make this error again for the non-polymorphic case
+    if (DEBUG && !this.options.polymorphic) {
       modelClass.typeForRelationship(this.key, store);
     }
 

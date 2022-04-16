@@ -1204,6 +1204,9 @@ class Model extends EmberObject {
    @return {Model} the type of the relationship, or undefined
    */
   static typeForRelationship(name, store) {
+    if (!store.getSchemaDefinitionService().doesTypeExist(name)) {
+      return null;
+    }
     let relationship = this.relationshipsByName.get(name);
     return relationship && store.modelFor(relationship.type);
   }
@@ -1261,11 +1264,13 @@ class Model extends EmberObject {
   //Calculate the inverse, ignoring the cache
   static _findInverseFor(name, store) {
     let inverseType = this.typeForRelationship(name, store);
-    if (!inverseType) {
+    let propertyMeta = this.metaForProperty(name);
+
+    if (!inverseType && !propertyMeta.options.polymorphic) {
+      // TODO still error?
       return null;
     }
 
-    let propertyMeta = this.metaForProperty(name);
     //If inverse is manually specified to be null, like  `comments: hasMany('message', { inverse: null })`
     let options = propertyMeta.options;
     if (options.inverse === null) {
@@ -1275,23 +1280,25 @@ class Model extends EmberObject {
     let inverseName, inverseKind, inverse, inverseOptions;
 
     //If inverse is specified manually, return the inverse
-    if (options.inverse) {
+    if ((!options.polymorphic || inverseType) && options.inverse) {
       inverseName = options.inverse;
-      inverse = inverseType.relationshipsByName.get(inverseName);
+      inverse = inverseType && inverseType.relationshipsByName.get(inverseName);
 
-      assert(
-        "We found no inverse relationships by the name of '" +
-          inverseName +
-          "' on the '" +
-          inverseType.modelName +
-          "' model. This is most likely due to a missing attribute on your model definition.",
-        !isNone(inverse)
-      );
+      if (!options.polymorphic) {
+        assert(
+          "We found no inverse relationships by the name of '" +
+            inverseName +
+            "' on the '" +
+            inverseType.modelName +
+            "' model. This is most likely due to a missing attribute on your model definition.",
+          !isNone(inverse)
+        );
+      }
 
       // TODO probably just return the whole inverse here
       inverseKind = inverse.kind;
       inverseOptions = inverse.options;
-    } else {
+    } else if (!options.inverse) {
       //No inverse was specified manually, we need to use a heuristic to guess one
       if (propertyMeta.type === propertyMeta.parentModelName) {
         warn(
@@ -1347,10 +1354,15 @@ class Model extends EmberObject {
       inverseOptions = possibleRelationships[0].options;
     }
 
-    assert(
-      `The ${inverseType.modelName}:${inverseName} relationship declares 'inverse: null', but it was resolved as the inverse for ${this.modelName}:${name}.`,
-      !inverseOptions || inverseOptions.inverse !== null
-    );
+    if (inverseOptions?.polymorphic) {
+      // validate
+      assert(`these should match`, !!options.as && inverse.type === options.as);
+    } else {
+      assert(
+        `The ${inverseType.modelName}:${inverseName} relationship declares 'inverse: null', but it was resolved as the inverse for ${this.modelName}:${name}.`,
+        !inverseOptions || inverseOptions.inverse !== null
+      );
+    }
 
     return {
       type: inverseType,
