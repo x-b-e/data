@@ -53,6 +53,10 @@ function useObjectValueEquality(a: object, b: object) {
   return a === b || a.valueOf() === b.valueOf();
 }
 
+function useDateValueEquality(a: Date, b: Date) {
+  return a.toISOString() === b.toISOString();
+}
+
 type HasConstructor = { constructor?: unknown };
 
 function compareConstructors(a: HasConstructor, b: HasConstructor) {
@@ -90,7 +94,7 @@ const objTypeCallbacks = {
   // Handle boxed string
   string: useObjectValueEquality,
   symbol: useStrictEquality,
-  date: useObjectValueEquality,
+  date: useDateValueEquality,
 
   nan() {
     return true;
